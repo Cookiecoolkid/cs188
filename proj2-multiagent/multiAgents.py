@@ -74,7 +74,43 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        # return successorGameState.getScore()
+        capsule = successorGameState.getCapsules()
+
+        food = newFood.asList()
+        min_food_distance = float('inf')
+        for f in food:
+            min_food_distance = min(min_food_distance, manhattanDistance(f, newPos))
+        '''
+        min_ghost_distance = float('inf')
+
+        for ghost in newGhostStates:
+            min_ghost_distance = min(min_ghost_distance, manhattanDistance(ghost.getPosition(), newPos))
+
+        if min_ghost_distance == 0:
+            min_ghost_distance = float('inf')
+
+        min_capsule_distance = float('inf')
+        for c in capsule:
+            min_capsule_distance = min(min_capsule_distance, manhattanDistance(c, newPos))
+        '''
+        
+        ghostDistances = [manhattanDistance(newPos, ghost.getPosition()) for ghost in newGhostStates]
+        ghostThreat = 0
+        for ghostState, ghostDistance in zip(newGhostStates, ghostDistances):
+            if ghostState.scaredTimer == 0:
+                if ghostDistance > 0:
+                    ghostThreat += 1.0 / ghostDistance
+                else:
+                    # The key to keep away from the ghost
+                    ghostThreat += float('inf')
+
+        try:
+            evaluation = successorGameState.getScore() + 1.0 / min_food_distance - ghostThreat
+        except ZeroDivisionError:
+            # print("Error: Division by zero is not allowed.")
+            evaluation = float('inf')
+        return evaluation
 
 def scoreEvaluationFunction(currentGameState):
     """
