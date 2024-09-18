@@ -199,12 +199,16 @@ class MinimaxAgent(MultiAgentSearchAgent):
             
         best_action = None
         best_score = float('-inf')
+        
         for action in gameState.getLegalActions(0):
             successor = gameState.generateSuccessor(0, action)
             score = minimax(successor, self.depth, 1)
             if score > best_score:
                 best_score = score
                 best_action = action
+
+        # print("Best action: ", best_action)
+        
         return best_action
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -217,7 +221,55 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        def max_value(state, depth, agentIndex, alpha, beta):
+            v = float('-inf')
+            for action in state.getLegalActions(agentIndex):
+                successor = state.generateSuccessor(agentIndex, action)
+                v = max(v, minimax(successor, depth, agentIndex + 1, alpha, beta))
+                if v > beta:
+                    return v
+                alpha = max(alpha, v)
+            return v
+        
+        def min_value(state, depth, agentIndex, alpha, beta):
+            v = float('inf')
+            for action in state.getLegalActions(agentIndex):
+                successor = state.generateSuccessor(agentIndex, action)
+                if agentIndex == state.getNumAgents() - 1:
+                    v = min(v, minimax(successor, depth - 1, 0, alpha, beta))
+                else:
+                    v = min(v, minimax(successor, depth, agentIndex + 1, alpha, beta))
+                if v < alpha:
+                    return v
+                beta = min(beta, v)
+            return v
+        
+        def minimax(state, depth, agentIndex, alpha, beta):
+            if state.isWin() or state.isLose() or depth == 0:
+                return self.evaluationFunction(state)
+            if agentIndex == 0:
+                return max_value(state, depth, agentIndex, alpha, beta)
+            else:
+                return min_value(state, depth, agentIndex, alpha, beta)
+            
+        best_action = None
+        best_score = float('-inf')
+        alpha = float('-inf')
+        beta = float('inf')
+        
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            score = minimax(successor, self.depth, 1, alpha, beta)
+            if score > best_score:
+                best_score = score
+                best_action = action
+            
+            # Also update alpha here
+            alpha = max(alpha, best_score)
+        
+        return best_action
+        
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -232,7 +284,46 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def max_value(state, depth, agentIndex):
+            v = float('-inf')
+            for action in state.getLegalActions(agentIndex):
+                successor = state.generateSuccessor(agentIndex, action)
+                v = max(v, minimax(successor, depth, agentIndex + 1))
+            return v
+        
+        def exp_value(state, depth, agentIndex):
+            v = float(0)
+            for action in state.getLegalActions(agentIndex):
+                successor = state.generateSuccessor(agentIndex, action)
+                p = 1.0 / len(state.getLegalActions(agentIndex))
+                if agentIndex == state.getNumAgents() - 1:
+                    v += p * minimax(successor, depth - 1, 0)
+                else:
+                    v += p * minimax(successor, depth, agentIndex + 1)
+            return v
+        
+        def minimax(state, depth, agentIndex):
+            if state.isWin() or state.isLose() or depth == 0:
+                return self.evaluationFunction(state)
+            if agentIndex == 0:
+                return max_value(state, depth, agentIndex)
+            else:
+                return exp_value(state, depth, agentIndex)
+            
+        best_action = None
+        best_score = float('-inf')
+        
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            score = minimax(successor, self.depth, 1)
+            if score > best_score:
+                best_score = score
+                best_action = action
+
+        # print("Best action: ", best_action)
+        
+        return best_action
+
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -242,7 +333,56 @@ def betterEvaluationFunction(currentGameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    
+    pacmanPos = currentGameState.getPacmanPosition()
+    foodGrid = currentGameState.getFood()
+    ghostStates = currentGameState.getGhostStates()
+    walls = currentGameState.getWalls()
+
+    def bfs(startPos, targets, walls):
+        from collections import deque
+        queue = deque([(startPos, 0)])
+        visited = set()
+        visited.add(startPos)
+
+        while queue:
+            pos, dist = queue.popleft()
+            if pos in targets:
+                return dist
+
+            for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+                x, y = pos
+                if direction == Directions.NORTH:
+                    nextPos = (x, y + 1)
+                elif direction == Directions.SOUTH:
+                    nextPos = (x, y - 1)
+                elif direction == Directions.EAST:
+                    nextPos = (x + 1, y)
+                elif direction == Directions.WEST:
+                    nextPos = (x - 1, y)
+
+                if nextPos not in walls.asList() and nextPos not in visited:
+                    visited.add(nextPos)
+                    queue.append((nextPos, dist + 1))
+
+        return float('inf')
+
+    foodList = foodGrid.asList()
+    minFoodDist = bfs(pacmanPos, foodList, walls)
+
+    ghostPositions = [ghostState.getPosition() for ghostState in ghostStates if ghostState.scaredTimer == 0]
+    minGhostDist = bfs(pacmanPos, ghostPositions, walls)
+
+    ghostThreat = 0
+    if minGhostDist > 0:
+        ghostThreat = 1.0 / minGhostDist
+    else:
+        ghostThreat = float('inf')
+
+    evaluation = currentGameState.getScore() + (1.0 / minFoodDist) - ghostThreat
+
+    return evaluation
+
 
 # Abbreviation
 better = betterEvaluationFunction
