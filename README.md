@@ -73,3 +73,9 @@ Part III: Throughout Applications
         - Substitutability
         - Monotonocity
     - MEU (Maximum Expected Utility) Principle
+- Course 8: Markov Decision Processes
+  - MDPs
+    - Start State
+    - Actions
+    - Transition Function
+    - Reward Function($R(s, a, s^{'})$) and discount factor($\gamma$)
