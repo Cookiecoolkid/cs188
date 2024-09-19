@@ -78,4 +78,4 @@ Part III: Throughout Applications
     - Start State
     - Actions
     - Transition Function
-    - Reward Function($R(s, a, s^{'})$) and discount factor($\gamma$)
+    - Reward Function(<span>&#x211D;(s, a, s<sup>'</sup>)</span>) and discount factor($\gamma$)
